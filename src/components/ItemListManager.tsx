@@ -1,4 +1,4 @@
-//'use client'
+'use client'
 import { useAuth } from '../contexts/AuthContext'
 import { useState, useEffect } from 'react'
 import { Plus, Pencil, Trash2, LogOut } from 'lucide-react'
@@ -16,17 +16,15 @@ export default function ItemListManager() {
 
  // Fetch products on component mount or when user changes
  useEffect(() => {
-   if (user) {
-     fetchProducts()
-   }
- }, [user])
+  if (user) {
+    fetchProducts()
+  }
+}, [user])
 
  const fetchProducts = async () => {
    try {
-      console.log(user)
-     const token = await user?.getIdToken()
-     console.log(token)
-
+     console.log(user)
+     const token = await user?.getIdToken() || '';  // Add default empty string
      const products = await apiService.getAllProducts(token)
      setItems(products)
    } catch (error) {
@@ -35,11 +33,12 @@ export default function ItemListManager() {
    }
  }
 
+
  const handleSubmit = async (e: React.FormEvent) => {
    e.preventDefault()
    setLoading(true)
    try {
-     const token = await user?.getIdToken()
+     const token = await user?.getIdToken() || '';
      await apiService.scrapeProduct(weblink, token)
      await fetchProducts() // Refresh the list
      setWeblink('')
@@ -55,7 +54,7 @@ export default function ItemListManager() {
 
  const handleDelete = async (id: string) => {
    try {
-     const token = await user?.getIdToken()
+     const token = await user?.getIdToken() || '';
      await apiService.deleteProduct(id, token)
      setItems(items.filter(item => item.id !== id))
      toast.success('Product deleted successfully')
@@ -78,7 +77,7 @@ export default function ItemListManager() {
  return (
    <div className="container mx-auto p-4">
      <div className="flex justify-between items-center mb-6">
-       <h1 className="text-2xl font-bold">Product List Manger</h1>
+       <h1 className="text-2xl font-bold">Product List Manager</h1>
        <div className="flex items-center gap-4">
          <span className="text-sm text-gray-600">
            {user?.email}
