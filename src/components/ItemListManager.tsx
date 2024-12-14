@@ -1,6 +1,7 @@
 'use client'
+import { useAuth } from '../contexts/AuthContext'
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, LogOut } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -8,18 +9,23 @@ import { apiService, Product } from '@/services/apiService'
 import { toast } from 'react-hot-toast'
 
 export default function ItemListManager() {
+ const { user, logout } = useAuth();
  const [items, setItems] = useState<Product[]>([])
  const [weblink, setWeblink] = useState('')
  const [loading, setLoading] = useState(false)
 
- // Fetch products on component mount
+ // Fetch products on component mount or when user changes
  useEffect(() => {
-   fetchProducts()
- }, [])
+  if (user) {
+    fetchProducts()
+  }
+}, [user])
 
  const fetchProducts = async () => {
    try {
-     const products = await apiService.getAllProducts()
+     console.log(user)
+     const token = await user?.getIdToken() || '';  // Add default empty string
+     const products = await apiService.getAllProducts(token)
      setItems(products)
    } catch (error) {
      toast.error('Failed to fetch products')
@@ -27,11 +33,13 @@ export default function ItemListManager() {
    }
  }
 
+
  const handleSubmit = async (e: React.FormEvent) => {
    e.preventDefault()
    setLoading(true)
    try {
-     await apiService.scrapeProduct(weblink)
+     const token = await user?.getIdToken() || '';
+     await apiService.scrapeProduct(weblink, token)
      await fetchProducts() // Refresh the list
      setWeblink('')
      toast.success('Product added successfully')
@@ -42,10 +50,12 @@ export default function ItemListManager() {
      setLoading(false)
    }
  }
+   
 
  const handleDelete = async (id: string) => {
    try {
-     await apiService.deleteProduct(id)
+     const token = await user?.getIdToken() || '';
+     await apiService.deleteProduct(id, token)
      setItems(items.filter(item => item.id !== id))
      toast.success('Product deleted successfully')
    } catch (error) {
@@ -54,9 +64,30 @@ export default function ItemListManager() {
    }
  }
 
+ const handleLogout = async () => {
+   try {
+     await logout()
+     toast.success('Logged out successfully')
+   } catch (error) {
+     toast.error('Failed to logout')
+     console.error(error)
+   }
+ }
+
  return (
    <div className="container mx-auto p-4">
-     <h1 className="text-2xl font-bold mb-4">Product List Manager</h1>
+     <div className="flex justify-between items-center mb-6">
+       <h1 className="text-2xl font-bold">Product List Manager</h1>
+       <div className="flex items-center gap-4">
+         <span className="text-sm text-gray-600">
+           {user?.email}
+         </span>
+         <Button variant="outline" size="sm" onClick={handleLogout}>
+           <LogOut className="h-4 w-4 mr-2" />
+           Logout
+         </Button>
+       </div>
+     </div>
      
      <form onSubmit={handleSubmit} className="mb-4 space-y-4">
        <Input
@@ -92,7 +123,7 @@ export default function ItemListManager() {
                  size="sm"
                  onClick={() => window.open(item.url, '_blank')}
                >
-                 Visit Site
+                  Visit Site
                </Button>
              </TableCell>
              <TableCell>
